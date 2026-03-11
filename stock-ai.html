@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#00ff88"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>StockGuru AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#020d06;
+  --bg2:#041a0c;
+  --surface:#071f0f;
+  --surface2:#0a2914;
+  --surface3:#0e3318;
+  --green:#00ff88;
+  --green2:#00cc66;
+  --green3:#009944;
+  --red:#ff3355;
+  --yellow:#ffcc00;
+  --blue:#00aaff;
+  --border:rgba(0,255,136,0.12);
+  --border2:rgba(0,255,136,0.25);
+  --text:#ccffe8;
+  --text2:#66bb8a;
+  --text3:#336644;
+  --glow:rgba(0,255,136,0.3);
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Exo 2',sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;height:100dvh;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,255,136,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 0% 100%,rgba(0,204,102,0.05) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 100% 50%,rgba(255,51,85,0.04) 0%,transparent 60%);
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(0,255,136,0.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,255,136,0.02) 1px,transparent 1px);
+  background-size:30px 30px;
+}
+
+/* ── HEADER ── */
+header{
+  position:relative;z-index:10;
+  padding:12px 14px 10px;
+  background:rgba(4,26,12,0.95);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border2);
+  flex-shrink:0;
+}
+.header-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.logo-wrap{position:relative;width:44px;height:44px;flex-shrink:0}
+.logo-ring{position:absolute;inset:-2px;border-radius:10px;background:conic-gradient(var(--green),var(--yellow),var(--red),var(--green));animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.logo-inner{
+  position:absolute;inset:2px;border-radius:8px;
+  background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:18px;font-weight:900;
+  color:var(--green);text-shadow:0 0 10px var(--green);
+}
+.header-info{flex:1}
+.header-name{
+  font-family:'Orbitron',monospace;font-size:15px;font-weight:700;
+  background:linear-gradient(90deg,var(--green),var(--yellow));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:1px;
+}
+.header-sub{font-size:10px;color:var(--text2);font-family:'Share Tech Mono',monospace;letter-spacing:1px;margin-top:1px}
+.live-badge{
+  display:flex;align-items:center;gap:4px;
+  background:rgba(0,255,136,0.08);border:1px solid var(--border2);
+  border-radius:20px;padding:3px 8px;font-size:10px;
+  font-family:'Share Tech Mono',monospace;color:var(--green);
+}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Market ticker */
+.ticker{
+  display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;
+  padding:2px 0;
+}
+.ticker::-webkit-scrollbar{display:none}
+.tick{
+  display:flex;align-items:center;gap:5px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  white-space:nowrap;flex-shrink:0;
+}
+.tick-name{color:var(--text2)}
+.tick-val{font-weight:600}
+.up{color:var(--green)}
+.down{color:var(--red)}
+
+/* ── MODE TABS ── */
+.mode-bar{
+  position:relative;z-index:10;
+  display:flex;overflow-x:auto;scrollbar-width:none;
+  background:rgba(4,26,12,0.8);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  padding:0 10px;
+}
+.mode-bar::-webkit-scrollbar{display:none}
+.mode-btn{
+  padding:9px 12px;font-size:11px;font-weight:600;
+  color:var(--text3);border:none;background:none;cursor:pointer;
+  white-space:nowrap;border-bottom:2px solid transparent;
+  transition:all 0.2s;font-family:'Exo 2',sans-serif;letter-spacing:0.5px;
+  display:flex;align-items:center;gap:4px;
+}
+.mode-btn.active{color:var(--green);border-bottom-color:var(--green)}
+.mode-btn:hover:not(.active){color:var(--text2)}
+
+/* ── CHAT ── */
+.chat-area{
+  flex:1;overflow-y:auto;padding:12px 12px 6px;
+  display:flex;flex-direction:column;gap:10px;
+  position:relative;z-index:5;scroll-behavior:smooth;
+}
+.chat-area::-webkit-scrollbar{width:3px}
+.chat-area::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+/* Welcome */
+.welcome{
+  background:linear-gradient(135deg,rgba(0,255,136,0.08),rgba(255,204,0,0.05));
+  border:1px solid var(--border2);border-radius:16px;padding:16px;
+  text-align:center;position:relative;overflow:hidden;
+}
+.welcome::before{
+  content:'📈';position:absolute;font-size:100px;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  opacity:0.04;pointer-events:none;
+}
+.welcome-title{
+  font-family:'Orbitron',monospace;font-size:18px;font-weight:700;
+  background:linear-gradient(90deg,var(--green),var(--yellow));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;
+}
+.welcome-sub{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* Quick topics */
+.topics{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.topic{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:9px 10px;font-size:12px;color:var(--text2);cursor:pointer;
+  text-align:left;font-family:'Exo 2',sans-serif;font-weight:500;
+  display:flex;align-items:center;gap:6px;transition:all 0.2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.topic:active{background:rgba(0,255,136,0.1);border-color:var(--green);color:var(--green)}
+
+/* Messages */
+.msg{display:flex;gap:8px;animation:msgIn 0.3s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.msg-av{
+  width:28px;height:28px;border-radius:7px;
+  background:var(--surface2);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;flex-shrink:0;font-family:'Orbitron',monospace;color:var(--green);
+}
+.msg.user .msg-av{background:linear-gradient(135deg,var(--green3),var(--green2));border:none;color:#000;font-size:11px}
+.msg-bubble{
+  max-width:82%;background:var(--surface);border:1px solid var(--border);
+  border-radius:14px 14px 14px 4px;padding:10px 13px;
+  font-size:13px;line-height:1.6;color:var(--text);
+}
+.msg.user .msg-bubble{
+  background:linear-gradient(135deg,rgba(0,255,136,0.15),rgba(0,204,102,0.08));
+  border:1px solid rgba(0,255,136,0.3);border-radius:14px 14px 4px 14px;
+}
+.msg-time{font-size:10px;color:var(--text3);margin-top:4px;text-align:right;font-family:'Share Tech Mono',monospace}
+
+/* Uploaded image preview */
+.img-preview{max-width:200px;border-radius:10px;border:1px solid var(--border2);margin-bottom:6px;display:block}
+
+/* Typing */
+.typing{display:flex;gap:5px;padding:3px 0}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--green);opacity:0.5;animation:tb 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px);opacity:1}}
+
+/* ── KNOWLEDGE PANEL ── */
+.know-panel{
+  flex:1;overflow-y:auto;padding:12px;
+  display:none;flex-direction:column;gap:10px;
+  position:relative;z-index:5;
+}
+.know-panel.active{display:flex}
+.know-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;cursor:pointer;transition:all 0.2s;
+}
+.know-card:active{border-color:var(--green)}
+.know-header{
+  padding:12px 14px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+}
+.know-icon{font-size:20px}
+.know-title{font-size:14px;font-weight:700;color:var(--green);font-family:'Exo 2',sans-serif}
+.know-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.know-body{padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7;display:none}
+.know-body.open{display:block}
+.know-point{display:flex;gap:7px;margin-bottom:6px;color:var(--text2)}
+.know-point::before{content:'▸';color:var(--green);flex-shrink:0;font-size:11px;margin-top:1px}
+.candle-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.candle-chip{
+  padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  border:1px solid var(--border2);background:rgba(0,255,136,0.05);
+  color:var(--green);font-family:'Share Tech Mono',monospace;
+}
+.candle-chip.bear{border-color:rgba(255,51,85,0.3);background:rgba(255,51,85,0.05);color:var(--red)}
+
+/* ── INPUT ── */
+.input-area{
+  position:relative;z-index:10;
+  padding:10px 12px 16px;
+  background:rgba(4,26,12,0.95);backdrop-filter:blur(20px);
+  border-top:1px solid var(--border2);flex-shrink:0;
+}
+.input-tools{display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;scrollbar-width:none}
+.input-tools::-webkit-scrollbar{display:none}
+.tool{
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  color:var(--text3);border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;white-space:nowrap;font-family:'Exo 2',sans-serif;
+  transition:all 0.2s;-webkit-tap-highlight-color:transparent;
+}
+.tool.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.08)}
+
+/* Image upload preview bar */
+.img-bar{
+  display:none;align-items:center;gap:8px;
+  margin-bottom:8px;padding:7px 10px;
+  background:rgba(0,255,136,0.06);border:1px solid var(--border2);
+  border-radius:10px;
+}
+.img-bar.show{display:flex}
+.img-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border2)}
+.img-name{font-size:11px;color:var(--text2);flex:1;font-family:'Share Tech Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.img-remove{color:var(--red);font-size:16px;cursor:pointer;flex-shrink:0}
+
+.input-row{display:flex;align-items:flex-end;gap:8px}
+.input-box{
+  flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;
+  padding:11px 13px;font-size:14px;color:var(--text);font-family:'Exo 2',sans-serif;
+  resize:none;min-height:44px;max-height:100px;outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;line-height:1.5;
+}
+.input-box::placeholder{color:var(--text3)}
+.input-box:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,255,136,0.08)}
+.send-btn{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,var(--green3),var(--green2));
+  border:none;color:#000;font-size:18px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:all 0.2s;
+  box-shadow:0 4px 15px rgba(0,255,136,0.3);
+  -webkit-tap-highlight-color:transparent;
+}
+.send-btn:active{transform:scale(0.95)}
+.send-btn:disabled{opacity:0.3;box-shadow:none}
+.upload-btn{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text2);font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:all 0.2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.upload-btn:active{background:rgba(0,255,136,0.1);border-color:var(--green);color:var(--green)}
+#fileInput{display:none}
+
+.toast{
+  position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:20px;padding:7px 16px;font-size:11px;color:var(--text);
+  z-index:999;opacity:0;transition:all 0.3s;white-space:nowrap;
+  font-family:'Share Tech Mono',monospace;letter-spacing:0.5px;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-top">
+    <div class="logo-wrap">
+      <div class="logo-ring"></div>
+      <div class="logo-inner">₹</div>
+    </div>
+    <div class="header-info">
+      <div class="header-name">STOCKGURU AI</div>
+      <div class="header-sub">PROFESSIONAL TRADING ASSISTANT</div>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+  </div>
+  <div class="ticker" id="ticker">
+    <div class="tick"><span class="tick-name">NIFTY</span><span class="tick-val up">22,450 ▲</span></div>
+    <div class="tick"><span class="tick-name">SENSEX</span><span class="tick-val up">73,850 ▲</span></div>
+    <div class="tick"><span class="tick-name">BANKNIFTY</span><span class="tick-val down">48,120 ▼</span></div>
+    <div class="tick"><span class="tick-name">RELIANCE</span><span class="tick-val up">2,840 ▲</span></div>
+    <div class="tick"><span class="tick-name">TCS</span><span class="tick-val down">3,920 ▼</span></div>
+    <div class="tick"><span class="tick-name">GOLD</span><span class="tick-val up">62,400 ▲</span></div>
+  </div>
+</header>
+
+<!-- MODE TABS -->
+<div class="mode-bar">
+  <button class="mode-btn active" onclick="setMode('chat',this)">💬 AI Chat</button>
+  <button class="mode-btn" onclick="setMode('candles',this)">🕯️ Candles</button>
+  <button class="mode-btn" onclick="setMode('indicators',this)">📊 Indicators</button>
+  <button class="mode-btn" onclick="setMode('strategy',this)">⚡ Strategy</button>
+  <button class="mode-btn" onclick="setMode('fundamental',this)">🏢 Fundamental</button>
+  <button class="mode-btn" onclick="setMode('options',this)">🎯 Options</button>
+</div>
+
+<!-- CHAT -->
+<div class="chat-area" id="chatArea"></div>
+
+<!-- KNOWLEDGE PANELS -->
+<div class="know-panel" id="panel-candles"></div>
+<div class="know-panel" id="panel-indicators"></div>
+<div class="know-panel" id="panel-strategy"></div>
+<div class="know-panel" id="panel-fundamental"></div>
+<div class="know-panel" id="panel-options"></div>
+
+<!-- INPUT -->
+<div class="input-area">
+  <div class="input-tools">
+    <div class="tool on" id="tool-bilingual" onclick="toggleTool('bilingual',this)">🌐 Hindi+EN</div>
+    <div class="tool" id="tool-technical" onclick="toggleTool('technical',this)">📈 Technical</div>
+    <div class="tool" id="tool-beginner" onclick="toggleTool('beginner',this)">🎓 Beginner</div>
+    <div class="tool" id="tool-intraday" onclick="toggleTool('intraday',this)">⚡ Intraday</div>
+  </div>
+  <div class="img-bar" id="imgBar">
+    <img class="img-thumb" id="imgThumb" src="" alt=""/>
+    <span class="img-name" id="imgName">chart.jpg</span>
+    <span class="img-remove" onclick="removeImage()">✕</span>
+  </div>
+  <div class="input-row">
+    <div class="upload-btn" onclick="document.getElementById('fileInput').click()">📷</div>
+    <input type="file" id="fileInput" accept="image/*" onchange="handleImage(this)"/>
+    <textarea class="input-box" id="userInput"
+      placeholder="Chart upload karo ya kuch bhi poochho..."
+      onkeydown="handleKey(event)" oninput="autoResize(this)" rows="1"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════ CONFIG ═══════
+const GROQ_KEY = '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';
+const API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
+const MODEL    = 'llama-3.3-70b-versatile';
+
+// ═══════ STATE ═══════
+let currentMode = 'chat';
+let isLoading   = false;
+let convHistory = [];
+let tools       = {bilingual:true,technical:false,beginner:false,intraday:false};
+let uploadedImage = null; // {base64, name, mimeType}
+
+// ═══════ SYSTEM PROMPT ═══════
+function buildSys() {
+  let sys = `Tu StockGuru AI hai — ek world-class professional stock market expert aur trading mentor.
+Tu Indian stock market (NSE, BSE) ka deep specialist hai.
+Tera kaam hai traders aur investors ko accurate, actionable, aur educational guidance dena.
+
+Tu yeh sab jaanta hai:
+- Candlestick patterns (Doji, Hammer, Engulfing, Shooting Star, Morning Star, Evening Star, Harami, Marubozu, Spinning Top, Three White Soldiers, Three Black Crows, etc.)
+- Technical Indicators (RSI, MACD, Bollinger Bands, Moving Averages, Stochastic, ADX, ATR, OBV, VWAP, Supertrend, Ichimoku)
+- Chart patterns (Head & Shoulders, Double Top/Bottom, Triangle, Flag, Cup & Handle, Wedge)
+- Trading strategies (Intraday, Swing, Positional, Scalping, Momentum, Breakout)
+- Risk management (Stop Loss, Position Sizing, Risk:Reward ratio)
+- Fundamental analysis (PE ratio, EPS, ROE, Debt-to-Equity, Revenue growth)
+- Options & Futures (Call, Put, Strike price, Premium, Greeks, Hedging, Spreads)
+- Market psychology (Fear & Greed, Sentiment analysis)
+- Indian market specifics (Nifty, Sensex, Bank Nifty, FII/DII data, Circuit breakers)`;
+
+  if(tools.bilingual) sys += `\n\nBILINGUAL RULE: Har jawab DONO mein de:\n🇮🇳 Hindi: [explanation]\n🇬🇧 English: [same explanation]\nDono clearly label karo.`;
+  if(tools.technical) sys += `\n\nTechnical analysis focus karo. Charts, patterns, indicators detail mein explain karo.`;
+  if(tools.beginner)  sys += `\n\nBeginner-friendly language use karo. Jargon explain karo. Simple examples do.`;
+  if(tools.intraday)  sys += `\n\nIntraday trading focus karo. Entry/exit points, stop loss, targets clearly batao.`;
+
+  sys += `\n\nFormatting: **bold** for key terms. Use ✅ for bullish signals, ❌ for bearish, ⚠️ for caution. Always mention risk management.
+IMPORTANT: Yeh sirf educational hai. Real money invest karne se pehle SEBI registered advisor se milna.`;
+  return sys;
+}
+
+// ═══════ KNOWLEDGE DATA ═══════
+const knowledgeData = {
+  candles: [
+    {
+      icon:'🕯️', title:'Candlestick Basics', sub:'Price action ki language',
+      content:`<div class="know-point">Ek candle = Open, High, Low, Close (OHLC) dikhati hai</div>
+<div class="know-point"><strong style="color:var(--green)">Green/White candle</strong> = Close > Open (Bullish) ✅</div>
+<div class="know-point"><strong style="color:var(--red)">Red/Black candle</strong> = Close < Open (Bearish) ❌</div>
+<div class="know-point">Body = Open aur Close ke beech ka area</div>
+<div class="know-point">Wick/Shadow = High aur Low dikhata hai</div>`
+    },
+    {
+      icon:'🔨', title:'Bullish Patterns', sub:'Buy signal patterns',
+      content:`<div class="candle-row">
+<span class="candle-chip">Hammer ✅</span>
+<span class="candle-chip">Bullish Engulfing ✅</span>
+<span class="candle-chip">Morning Star ✅</span>
+<span class="candle-chip">Doji (support pe) ✅</span>
+<span class="candle-chip">Piercing Line ✅</span>
+<span class="candle-chip">Three White Soldiers ✅</span>
+<span class="candle-chip">Inverted Hammer ✅</span>
+<span class="candle-chip">Dragonfly Doji ✅</span>
+</div>
+<div style="margin-top:10px">
+<div class="know-point"><strong>Hammer</strong>: Chhoti body, lamba lower shadow. Downtrend ke baad aaye toh strong reversal signal</div>
+<div class="know-point"><strong>Bullish Engulfing</strong>: Badi green candle puri red candle ko cover kar le. Very strong signal</div>
+<div class="know-point"><strong>Morning Star</strong>: 3-candle pattern — Red, Doji, Green. Powerful reversal</div>
+</div>`
+    },
+    {
+      icon:'⭐', title:'Bearish Patterns', sub:'Sell/Short signal patterns',
+      content:`<div class="candle-row">
+<span class="candle-chip bear">Shooting Star ❌</span>
+<span class="candle-chip bear">Bearish Engulfing ❌</span>
+<span class="candle-chip bear">Evening Star ❌</span>
+<span class="candle-chip bear">Hanging Man ❌</span>
+<span class="candle-chip bear">Dark Cloud Cover ❌</span>
+<span class="candle-chip bear">Three Black Crows ❌</span>
+<span class="candle-chip bear">Gravestone Doji ❌</span>
+</div>
+<div style="margin-top:10px">
+<div class="know-point"><strong>Shooting Star</strong>: Lamba upper shadow, chhoti body. Uptrend ke baad = reversal</div>
+<div class="know-point"><strong>Bearish Engulfing</strong>: Badi red candle puri green candle ko cover kare</div>
+<div class="know-point"><strong>Evening Star</strong>: Green, Doji, Red — top pe reversal signal</div>
+</div>`
+    },
+    {
+      icon:'🔄', title:'Continuation Patterns', sub:'Trend continue hoga',
+      content:`<div class="candle-row">
+<span class="candle-chip">Marubozu ✅❌</span>
+<span class="candle-chip">Spinning Top</span>
+<span class="candle-chip">Doji</span>
+<span class="candle-chip">Harami</span>
+</div>
+<div style="margin-top:10px">
+<div class="know-point"><strong>Marubozu</strong>: No shadows. Pure buying/selling pressure. Trend strong hai</div>
+<div class="know-point"><strong>Spinning Top</strong>: Uncertainty. Market indecision. Wait karo</div>
+<div class="know-point"><strong>Doji</strong>: Open = Close. Buyers aur sellers equal. Reversal possible</div>
+</div>`
+    }
+  ],
+  indicators: [
+    {
+      icon:'📊', title:'RSI — Relative Strength Index', sub:'Overbought/Oversold detector',
+      content:`<div class="know-point">RSI 0-100 ke beech hota hai</div>
+<div class="know-point"><strong style="color:var(--red)">RSI > 70</strong> = Overbought ❌ — Sell/Short signal</div>
+<div class="know-point"><strong style="color:var(--green)">RSI < 30</strong> = Oversold ✅ — Buy signal</div>
+<div class="know-point">RSI 50 cross = Trend change ka signal</div>
+<div class="know-point"><strong>Divergence</strong>: Price new high but RSI nahi = Bearish divergence ⚠️</div>
+<div class="know-point">Period: 14 (default). Intraday ke liye 9 use karo</div>`
+    },
+    {
+      icon:'📈', title:'MACD — Moving Average Convergence Divergence', sub:'Trend & momentum indicator',
+      content:`<div class="know-point">MACD Line = 12 EMA - 26 EMA</div>
+<div class="know-point">Signal Line = 9 EMA of MACD</div>
+<div class="know-point"><strong style="color:var(--green)">MACD crosses above Signal</strong> = Buy ✅ (Bullish crossover)</div>
+<div class="know-point"><strong style="color:var(--red)">MACD crosses below Signal</strong> = Sell ❌ (Bearish crossover)</div>
+<div class="know-point">Histogram positive = Bullish momentum increasing</div>
+<div class="know-point">Zero line cross = Trend change confirm</div>`
+    },
+    {
+      icon:'🎯', title:'Moving Averages', sub:'Trend direction indicator',
+      content:`<div class="know-point"><strong>SMA</strong> = Simple Moving Average (equal weight)</div>
+<div class="know-point"><strong>EMA</strong> = Exponential MA (recent prices ko zyada weight)</div>
+<div class="know-point"><strong style="color:var(--green)">Golden Cross</strong>: 50 MA crosses above 200 MA = Strong Buy ✅</div>
+<div class="know-point"><strong style="color:var(--red)">Death Cross</strong>: 50 MA crosses below 200 MA = Strong Sell ❌</div>
+<div class="know-point">Price above MA = Uptrend. Price below MA = Downtrend</div>
+<div class="know-point">Key MAs: 9, 20, 50, 100, 200 EMA/SMA</div>`
+    },
+    {
+      icon:'〰️', title:'Bollinger Bands', sub:'Volatility indicator',
+      content:`<div class="know-point">Middle Band = 20 SMA</div>
+<div class="know-point">Upper Band = 20 SMA + 2 Standard Deviations</div>
+<div class="know-point">Lower Band = 20 SMA - 2 Standard Deviations</div>
+<div class="know-point"><strong style="color:var(--green)">Price touches lower band</strong> = Oversold, buy opportunity ✅</div>
+<div class="know-point"><strong style="color:var(--red)">Price touches upper band</strong> = Overbought, sell signal ❌</div>
+<div class="know-point"><strong>Band Squeeze</strong>: Bands narrow = Big move aane wala hai ⚡</div>`
+    },
+    {
+      icon:'⚡', title:'Supertrend & VWAP', sub:'Popular Indian market indicators',
+      content:`<div class="know-point"><strong>Supertrend</strong>: ATR based indicator. Green = Buy, Red = Sell</div>
+<div class="know-point">Supertrend settings: Period 7, Multiplier 3 (popular)</div>
+<div class="know-point"><strong>VWAP</strong> = Volume Weighted Average Price</div>
+<div class="know-point">Price above VWAP = Bullish ✅. Price below = Bearish ❌</div>
+<div class="know-point">Intraday traders ke liye VWAP sabse important indicator hai</div>
+<div class="know-point">Institutional traders VWAP ke around trade karte hain</div>`
+    }
+  ],
+  strategy: [
+    {
+      icon:'⚡', title:'Intraday Trading Strategy', sub:'Same day buy & sell',
+      content:`<div class="know-point"><strong>Time</strong>: 9:15 AM - 3:15 PM (NSE timing)</div>
+<div class="know-point"><strong>Best time to trade</strong>: 9:15-10:30 AM aur 2:00-3:15 PM</div>
+<div class="know-point"><strong>Setup</strong>: 5 min chart + 15 min chart use karo</div>
+<div class="know-point"><strong>Entry Rule</strong>: VWAP + RSI + Supertrend — teeno confirm ho</div>
+<div class="know-point"><strong>Stop Loss</strong>: Previous candle low (buy ke liye)</div>
+<div class="know-point"><strong>Target</strong>: Risk:Reward minimum 1:2 rakho</div>
+<div class="know-point"><strong>Capital Risk</strong>: Kabhi bhi 1-2% se zyada risk mat lo per trade ⚠️</div>`
+    },
+    {
+      icon:'🔄', title:'Swing Trading Strategy', sub:'2-7 din ke trades',
+      content:`<div class="know-point"><strong>Timeframe</strong>: Daily chart main analysis, 4H chart entry</div>
+<div class="know-point"><strong>Holding period</strong>: 2 din se 2-3 weeks</div>
+<div class="know-point"><strong>Setup</strong>: Breakout from consolidation zone</div>
+<div class="know-point"><strong>Entry</strong>: Resistance breakout with volume confirmation</div>
+<div class="know-point"><strong>Stop Loss</strong>: Below support level</div>
+<div class="know-point"><strong>Target</strong>: Next resistance level</div>
+<div class="know-point">Best for: Working professionals jo daily screen nahi dekh sakte</div>`
+    },
+    {
+      icon:'🛡️', title:'Risk Management — MOST IMPORTANT', sub:'Capital protection ke rules',
+      content:`<div class="know-point" style="color:var(--red)"><strong>⚠️ Yeh sabse important section hai!</strong></div>
+<div class="know-point"><strong>1% Rule</strong>: Ek trade mein kabhi 1-2% se zyada capital risk mat karo</div>
+<div class="know-point"><strong>Stop Loss</strong>: Hamesha PAHLE stop loss decide karo, phir entry lo</div>
+<div class="know-point"><strong>Risk:Reward</strong>: Minimum 1:2 — 100 risk karo toh 200 target rakho</div>
+<div class="know-point"><strong>Position Sizing</strong>: (Capital × Risk%) ÷ Stop Loss = Quantity</div>
+<div class="know-point"><strong>Never Average Down</strong>: Losing trade mein aur paisa mat daalo</div>
+<div class="know-point"><strong>3 Losses Rule</strong>: Din mein 3 losses ke baad trading band karo</div>
+<div class="know-point"><strong>Diversify</strong>: Ek stock mein poora paisa mat daalo</div>`
+    },
+    {
+      icon:'📉', title:'Breakout Strategy', sub:'Strong momentum trades',
+      content:`<div class="know-point">Stock kisi key level ke upar ya neeche break kare</div>
+<div class="know-point"><strong>Confirmation</strong>: Breakout candle close ho uske baad entry lo</div>
+<div class="know-point"><strong>Volume</strong>: Breakout pe volume average se 2x+ hona chahiye</div>
+<div class="know-point"><strong>False Breakout</strong>: Volume kam ho toh wait karo ⚠️</div>
+<div class="know-point">52-week high breakout = Very strong signal</div>
+<div class="know-point">Retest: Breakout ke baad level retest kare toh second entry opportunity</div>`
+    }
+  ],
+  fundamental: [
+    {
+      icon:'🏢', title:'Key Financial Ratios', sub:'Company ki health check',
+      content:`<div class="know-point"><strong>PE Ratio</strong> (Price/Earnings): Kitni baar earnings pay kar rahe ho. < 15 = Cheap, > 30 = Expensive</div>
+<div class="know-point"><strong>EPS</strong> (Earnings Per Share): Company ka per share profit. Badhna chahiye</div>
+<div class="know-point"><strong>ROE</strong> (Return on Equity): > 15% = Good company</div>
+<div class="know-point"><strong>Debt-to-Equity</strong>: < 1 = Low debt, safe. > 2 = Risky ⚠️</div>
+<div class="know-point"><strong>Current Ratio</strong>: > 1.5 = Company current liabilities pay kar sakti hai</div>
+<div class="know-point"><strong>Promoter Holding</strong>: > 50% = Management confident hai company mein</div>`
+    },
+    {
+      icon:'📋', title:'How to Pick Good Stocks', sub:'Stock selection framework',
+      content:`<div class="know-point"><strong>Step 1</strong>: Strong sector choose karo (IT, Pharma, FMCG, Banking)</div>
+<div class="know-point"><strong>Step 2</strong>: Sector mein market leader stocks dekho</div>
+<div class="know-point"><strong>Step 3</strong>: Last 5 years revenue growth > 15% honi chahiye</div>
+<div class="know-point"><strong>Step 4</strong>: Profit margin consistent aur growing ho</div>
+<div class="know-point"><strong>Step 5</strong>: Low debt, high promoter holding</div>
+<div class="know-point"><strong>Step 6</strong>: Technical analysis se entry point find karo</div>
+<div class="know-point"><strong>Tools</strong>: Screener.in, Tickertape, Moneycontrol use karo</div>`
+    },
+    {
+      icon:'📰', title:'Quarterly Results Analysis', sub:'Earnings season strategy',
+      content:`<div class="know-point"><strong>Revenue</strong>: YoY growth > 15% = Good ✅</div>
+<div class="know-point"><strong>Net Profit</strong>: Consistent badhna chahiye</div>
+<div class="know-point"><strong>EBITDA Margin</strong>: Stable ya improving honi chahiye</div>
+<div class="know-point"><strong>Guidance</strong>: Management ka future outlook important hai</div>
+<div class="know-point">Results ke din high volatility hoti hai — experienced traders ke liye</div>
+<div class="know-point"><strong>"Buy the rumor, sell the news"</strong>: Good results pe price already upar ho sakta hai</div>`
+    }
+  ],
+  options: [
+    {
+      icon:'🎯', title:'Options Basics', sub:'Call aur Put kya hai',
+      content:`<div class="know-point"><strong>Call Option</strong>: Stock upar jayega — yeh sochke kharidna. Bullish bet ✅</div>
+<div class="know-point"><strong>Put Option</strong>: Stock neeche jayega — yeh sochke kharidna. Bearish bet ❌</div>
+<div class="know-point"><strong>Strike Price</strong>: Wo price jis pe tum stock kharidne/bechne ka right le rahe ho</div>
+<div class="know-point"><strong>Premium</strong>: Option ki cost. Yeh lose ho sakti hai poori ⚠️</div>
+<div class="know-point"><strong>Expiry</strong>: NSE mein har Thursday ko weekly expiry hoti hai</div>
+<div class="know-point"><strong>ITM/ATM/OTM</strong>: In-the-money, At-the-money, Out-of-the-money</div>`
+    },
+    {
+      icon:'🔢', title:'Option Greeks', sub:'Price movement ko samjho',
+      content:`<div class="know-point"><strong>Delta</strong>: Stock 1 point move kare toh option kitna move karega (0 to 1)</div>
+<div class="know-point"><strong>Theta</strong>: Time decay — har din option ki value thodi kam hoti hai ⚠️</div>
+<div class="know-point"><strong>Gamma</strong>: Delta kitni jaldi change hoga</div>
+<div class="know-point"><strong>Vega</strong>: Volatility badhne pe option value badhti hai</div>
+<div class="know-point">Buyer ko Theta hurt karta hai. Seller ko Theta benefit deta hai</div>
+<div class="know-point">ATM options ka Delta ~0.5 hota hai</div>`
+    },
+    {
+      icon:'🛡️', title:'Safe Options Strategies', sub:'Beginners ke liye',
+      content:`<div class="know-point"><strong>Covered Call</strong>: Stock hold karo + Call sell karo. Extra income</div>
+<div class="know-point"><strong>Protective Put</strong>: Stock hold karo + Put khairdo. Insurance ki tarah</div>
+<div class="know-point"><strong>Bull Call Spread</strong>: Limited risk, limited reward. Safer strategy</div>
+<div class="know-point" style="color:var(--red)"><strong>⚠️ Warning</strong>: Naked options selling unlimited loss de sakti hai</div>
+<div class="know-point">Beginners: Sirf buying se shuru karo, selling baad mein</div>
+<div class="know-point">Paper trade karo pehle — real money se pehle practice karo</div>`
+    }
+  ]
+};
+
+// ═══════ INIT ═══════
+window.onload = () => {
+  // Welcome message
+  addMsg(false,
+    `📈 **Namaste! StockGuru AI mein welcome hai!**\n\n` +
+    `Main ek professional stock market expert hoon. Mujhse poochho:\n\n` +
+    `🕯️ **Candlestick patterns** — chart pe kya dikh raha hai?\n` +
+    `📊 **Technical analysis** — RSI, MACD, indicators\n` +
+    `⚡ **Trading strategies** — intraday, swing, positional\n` +
+    `🏢 **Fundamental** — stock kaise analyze karein\n` +
+    `🎯 **Options** — Call, Put, Greeks\n` +
+    `📷 **Chart upload karo** — main analyze kar dunga!\n\n` +
+    `⚠️ *Yeh sirf educational hai. Real investment se pehle SEBI advisor se milna.*`
+  );
+
+  // Quick topics
+  const area = document.getElementById('chatArea');
+  const grid = document.createElement('div');
+  grid.className = 'topics';
+  const topics = [
+    ['🔨','Hammer pattern kya hai?'],
+    ['📊','RSI 30 se upar aaya — kya karu?'],
+    ['⚡','Intraday strategy batao'],
+    ['🎯','Nifty options kaise trade karein?'],
+    ['🏢','Good stock kaise choose karein?'],
+    ['🛡️','Stop loss kaise lagayein?']
+  ];
+  topics.forEach(([icon,text]) => {
+    const b = document.createElement('button');
+    b.className = 'topic';
+    b.innerHTML = `<span>${icon}</span><span>${text}</span>`;
+    b.onclick = () => { document.getElementById('userInput').value = text; sendMessage(); };
+    grid.appendChild(b);
+  });
+  area.appendChild(grid);
+
+  // Build knowledge panels
+  buildKnowledgePanels();
+};
+
+// ═══════ KNOWLEDGE PANELS ═══════
+function buildKnowledgePanels() {
+  Object.keys(knowledgeData).forEach(key => {
+    const panel = document.getElementById('panel-'+key);
+    if(!panel) return;
+    knowledgeData[key].forEach((item,i) => {
+      const card = document.createElement('div');
+      card.className = 'know-card';
+      card.innerHTML = `
+        <div class="know-header" onclick="toggleCard(this)">
+          <span class="know-icon">${item.icon}</span>
+          <div>
+            <div class="know-title">${item.title}</div>
+            <div class="know-sub">${item.sub}</div>
+          </div>
+          <span style="margin-left:auto;color:var(--text3);font-size:16px">›</span>
+        </div>
+        <div class="know-body">${item.content}</div>`;
+      panel.appendChild(card);
+    });
+
+    // Ask AI button
+    const askBtn = document.createElement('button');
+    askBtn.style.cssText = 'background:rgba(0,255,136,0.08);border:1px solid var(--border2);border-radius:10px;padding:11px;color:var(--green);font-family:Exo 2,sans-serif;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;-webkit-tap-highlight-color:transparent';
+    askBtn.textContent = '💬 Is topic ke baare mein AI se poochho';
+    askBtn.onclick = () => { setMode('chat', document.querySelector('.mode-btn')); };
+    panel.appendChild(askBtn);
+  });
+}
+
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('span:last-child');
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '⌄' : '›';
+}
+
+// ═══════ MODE ═══════
+function setMode(m, btn) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else document.querySelectorAll('.mode-btn')[0].classList.add('active');
+
+  const chat = document.getElementById('chatArea');
+  const input = document.getElementById('inputArea') || document.querySelector('.input-area');
+
+  // Hide all panels
+  document.querySelectorAll('.know-panel').forEach(p => p.classList.remove('active'));
+
+  if(m === 'chat') {
+    chat.style.display = 'flex';
+  } else {
+    chat.style.display = 'none';
+    const panel = document.getElementById('panel-'+m);
+    if(panel) panel.classList.add('active');
+  }
+}
+
+// ═══════ TOOLS ═══════
+function toggleTool(key, el) {
+  tools[key] = !tools[key];
+  el.classList.toggle('on', tools[key]);
+  showToast(key.toUpperCase()+': '+(tools[key]?'ON':'OFF'));
+}
+
+// ═══════ IMAGE HANDLING ═══════
+function handleImage(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1];
+    uploadedImage = { base64, name: file.name, mimeType: file.type };
+    document.getElementById('imgThumb').src = e.target.result;
+    document.getElementById('imgName').textContent = file.name;
+    document.getElementById('imgBar').classList.add('show');
+    showToast('📷 Chart ready! Question likhke bhejo');
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function removeImage() {
+  uploadedImage = null;
+  document.getElementById('imgBar').classList.remove('show');
+  document.getElementById('imgThumb').src = '';
+}
+
+// ═══════ MESSAGES ═══════
+function addMsg(isUser, text, imgSrc=null) {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'msg'+(isUser?' user':'');
+
+  const av = document.createElement('div');
+  av.className = 'msg-av';
+  av.textContent = isUser ? '👤' : '₹';
+
+  const bub = document.createElement('div');
+  bub.className = 'msg-bubble';
+
+  if(imgSrc) {
+    const img = document.createElement('img');
+    img.src = imgSrc; img.className = 'img-preview';
+    bub.appendChild(img);
+  }
+
+  const textDiv = document.createElement('div');
+  textDiv.innerHTML = formatText(text);
+  bub.appendChild(textDiv);
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  bub.appendChild(time);
+
+  div.appendChild(av); div.appendChild(bub);
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function formatText(t) {
+  return t
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^#{2,3} (.+)$/gm,'<div style="font-size:13px;font-weight:700;color:var(--green);margin:8px 0 4px;font-family:Orbitron,monospace;letter-spacing:1px">$1</div>')
+    .replace(/^[-•] (.+)$/gm,'<div style="display:flex;gap:7px;margin:3px 0;color:var(--text2)"><span style="color:var(--green)">▸</span><span>$1</span></div>')
+    .replace(/^(\d+)\. (.+)$/gm,'<div style="display:flex;gap:7px;margin:3px 0;color:var(--text2)"><span style="color:var(--green);font-weight:700;min-width:18px">$1.</span><span>$2</span></div>')
+    .replace(/`([^`]+)`/g,'<code style="background:rgba(0,255,136,0.08);padding:1px 5px;border-radius:4px;font-size:12px;color:var(--green);font-family:Share Tech Mono,monospace">$1</code>')
+    .replace(/✅/g,'<span style="color:var(--green)">✅</span>')
+    .replace(/❌/g,'<span style="color:var(--red)">❌</span>')
+    .replace(/⚠️/g,'<span style="color:var(--yellow)">⚠️</span>')
+    .replace(/🇮🇳/g,'<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;margin:0 2px;background:rgba(255,136,0,0.12);color:#ffaa44;border:1px solid rgba(255,136,0,0.25)">🇮🇳 HINDI</span>')
+    .replace(/🇬🇧/g,'<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;margin:0 2px;background:rgba(0,255,136,0.1);color:var(--green);border:1px solid var(--border2)">🇬🇧 ENGLISH</span>')
+    .replace(/\n/g,'<br>');
+}
+
+function showTyping() {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className='msg'; div.id='typing';
+  div.innerHTML=`<div class="msg-av">₹</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(div); area.scrollTop=area.scrollHeight;
+}
+function hideTyping(){ document.getElementById('typing')?.remove(); }
+
+// ═══════ API ═══════
+async function callGroq(sys, messages) {
+  const res = await fetch(API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+    body:JSON.stringify({model:MODEL,messages:[{role:'system',content:sys},...messages],max_tokens:1000,temperature:0.6})
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  return data.choices?.[0]?.message?.content || 'Kuch galat hua.';
+}
+
+// ═══════ SEND ═══════
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if((!text && !uploadedImage) || isLoading) return;
+
+  const imgSrc = uploadedImage ? 'data:'+uploadedImage.mimeType+';base64,'+uploadedImage.base64 : null;
+  const displayText = text || '📷 Chart ka analysis karo';
+
+  addMsg(true, displayText, imgSrc);
+
+  // Build message content
+  let userContent = text || 'Is chart ka technical analysis karo. Patterns, support/resistance, indicators kya dikh rahe hain? Trading recommendation do.';
+
+  if(uploadedImage) {
+    userContent += '\n\n[Chart image attached — please analyze the candlestick patterns, trend, support/resistance levels, and give trading recommendation]';
+  }
+
+  convHistory.push({role:'user', content: userContent});
+  input.value=''; input.style.height='auto';
+  removeImage();
+
+  isLoading=true;
+  document.getElementById('sendBtn').disabled=true;
+  showTyping();
+
+  // Switch to chat if not already
+  if(currentMode !== 'chat') setMode('chat', document.querySelector('.mode-btn'));
+
+  try {
+    const reply = await callGroq(buildSys(), convHistory.slice(-12));
+    hideTyping();
+    addMsg(false, reply);
+    convHistory.push({role:'assistant', content:reply});
+    if(convHistory.length>20) convHistory=convHistory.slice(-16);
+  } catch(e) {
+    hideTyping();
+    addMsg(false,'⚠️ **Error:** '+e.message+'\n\nInternet check karo.');
+  }
+
+  isLoading=false;
+  document.getElementById('sendBtn').disabled=false;
+}
+
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+</script>
+</body>
+</html>
